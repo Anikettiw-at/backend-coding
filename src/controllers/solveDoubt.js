@@ -33,7 +33,7 @@ if (sanitizedMessages.length === 0) {
   return res.status(400).json({ message: "No valid user messages found" });
 }
 
-const lastMsg = sanitizedMessages[sanitizedMessages.length - 1];
+ lastMsg = sanitizedMessages[sanitizedMessages.length - 1];
 if (lastMsg.role !== "user") {
   return res.status(400).json({ message: "Last message must be from user" });
 }
