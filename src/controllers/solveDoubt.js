@@ -12,14 +12,35 @@ const solveDoubt = async (req, res) => {
 
     // Frontend already sends Gemini format: { role, parts: [{ text }] }
     // Just validate last message is from user
-    const lastMsg = messages[messages.length - 1];
-    if (lastMsg.role !== "user") {
-      return res.status(400).json({ message: "Last message must be from user" });
-    }
+  // REPLACE this block:
+const lastMsg = messages[messages.length - 1];
+if (lastMsg.role !== "user") {
+  return res.status(400).json({ message: "Last message must be from user" });
+}
+
+// WITH this:
+// Gemini needs: starts with "user", ends with "user", alternating roles
+const sanitizedMessages = messages.filter((msg) =>
+  msg.role === "user" || msg.role === "model"
+);
+
+// Remove leading "model" messages — Gemini requires first msg to be "user"
+while (sanitizedMessages.length > 0 && sanitizedMessages[0].role === "model") {
+  sanitizedMessages.shift();
+}
+
+if (sanitizedMessages.length === 0) {
+  return res.status(400).json({ message: "No valid user messages found" });
+}
+
+const lastMsg = sanitizedMessages[sanitizedMessages.length - 1];
+if (lastMsg.role !== "user") {
+  return res.status(400).json({ message: "Last message must be from user" });
+}
 
     const response = await ai.models.generateContent({
       model: "gemini-2.5-flash",
-      contents: messages,
+      contents: sanitizedMessages,
       config: {
         systemInstruction: `
 You are an expert Data Structures and Algorithms (DSA) tutor specializing in helping users solve coding problems. Your role is strictly limited to DSA-related assistance only.
