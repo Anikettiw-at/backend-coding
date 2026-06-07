@@ -1,30 +1,34 @@
 const { GoogleGenAI } = require("@google/genai");
 
+const solveDoubt = async (req, res) => {
+  try {
+    const { messages, title, description, testCases, startCode } = req.body;
 
+    if (!messages || !Array.isArray(messages) || messages.length === 0) {
+      return res.status(400).json({ message: "Messages array is required" });
+    }
 
+    const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_KEY });
 
-const solveDoubt = async(req , res)=>{
+    // Frontend already sends Gemini format: { role, parts: [{ text }] }
+    // Just validate last message is from user
+    const lastMsg = messages[messages.length - 1];
+    if (lastMsg.role !== "user") {
+      return res.status(400).json({ message: "Last message must be from user" });
+    }
 
-
-    try{
-
-        const {messages,title,description,testCases,startCode} = req.body;
-        const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_KEY });
-       
-        async function main() {
-        const response = await ai.models.generateContent({
-        model: "gemini-2.5-flash",
-        contents: messages,
-        config: {
+    const response = await ai.models.generateContent({
+      model: "gemini-2.5-flash",
+      contents: messages,
+      config: {
         systemInstruction: `
 You are an expert Data Structures and Algorithms (DSA) tutor specializing in helping users solve coding problems. Your role is strictly limited to DSA-related assistance only.
 
 ## CURRENT PROBLEM CONTEXT:
 [PROBLEM_TITLE]: ${title}
 [PROBLEM_DESCRIPTION]: ${description}
-[EXAMPLES]: ${testCases}
-[startCode]: ${startCode}
-
+[EXAMPLES]: ${JSON.stringify(testCases)}
+[startCode]: ${JSON.stringify(startCode)}
 
 ## YOUR CAPABILITIES:
 1. **Hint Provider**: Give step-by-step hints without revealing the complete solution
@@ -35,7 +39,6 @@ You are an expert Data Structures and Algorithms (DSA) tutor specializing in hel
 6. **Test Case Helper**: Help create additional test cases for edge case validation
 
 ## INTERACTION GUIDELINES:
-
 ### When user asks for HINTS:
 - Break down the problem into smaller sub-problems
 - Ask guiding questions to help them think through the solution
@@ -67,7 +70,7 @@ You are an expert Data Structures and Algorithms (DSA) tutor specializing in hel
 - Use examples to illustrate concepts
 - Break complex explanations into digestible parts
 - Always relate back to the current problem context
-- Always response in the Language in which user is comfortable or given the context
+- Always respond in the language in which the user is comfortable or given the context
 
 ## STRICT LIMITATIONS:
 - ONLY discuss topics related to the current DSA problem
@@ -83,28 +86,25 @@ You are an expert Data Structures and Algorithms (DSA) tutor specializing in hel
 - Promote best coding practices
 
 Remember: Your goal is to help users learn and understand DSA concepts through the lens of the current problem, not just to provide quick answers.
-`},
+        `,
+      },
     });
-     
-    res.status(201).json({
-        message:response.text
-    });
-    console.log(response.text);
+
+    const aiText = response.text;
+
+    if (!aiText) {
+      return res.status(502).json({ message: "No response from AI" });
     }
 
-    main();
-      
-    }
-    catch(err){
-        res.status(500).json({
-            message: "Internal server error"
-        });
-    }
-}
+    return res.status(200).json({ message: aiText });
+
+  } catch (err) {
+    console.error("solveDoubt error:", err?.message ?? err);
+    return res.status(500).json({
+      message: "Internal server error",
+      error: process.env.NODE_ENV === "development" ? err?.message : undefined,
+    });
+  }
+};
 
 module.exports = solveDoubt;
-
-
-
-   
-      
