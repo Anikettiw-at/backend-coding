@@ -17,16 +17,24 @@ const cors = require('cors')
 //     origin: 'http://localhost:5173',
 //     credentials: true 
 // }))
+
+
 // app.use(cors({
-//   origin: true,
+//   origin: [
+//     "http://localhost:5173",
+//     "https://frontend-coding-roan.vercel.app"   
+//   ],
 //   credentials: true
 // }));
 
+
 app.use(cors({
-  origin: [
+   origin: [
     "http://localhost:5173",
     "https://frontend-coding-roan.vercel.app"   
   ],
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
   credentials: true
 }));
 
